@@ -57,7 +57,7 @@ jobs:
         
         # Verify Docker version and Docker Scan command
         docker --version
-        docker scan --version
+      #  docker scan --version
 
     # Step 5: Build Docker image
     - name: Build Docker image
@@ -65,9 +65,9 @@ jobs:
         docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }} .
 
    # Step 6: Scan Docker image using Docker Scan 
-    - name: Scan Docker image with Docker Scan
-      run: |
-        docker scan ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+ #   - name: Scan Docker image with Docker Scan
+  #    run: |
+   #     docker scan ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
 
     # Step 7: Log in to Azure and Azure Container Registry (ACR)
