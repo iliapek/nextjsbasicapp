@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextjsapp
+  labels:
+    app: nextjsapp
+spec:
+  replicas: 2  # Number of pod replicas (adjust based on your needs)
+  selector:
+    matchLabels:
+      app: nextjsapp
+  template:
+    metadata:
+      labels:
+        app: nextjsapp
+    spec:
+      containers:
+        - name: nextjsapp
+          image: ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}  # Reference the image built in the workflow
+          ports:
+            - containerPort: 3000  
+
+          env:
+            - name: NODE_ENV
+              value: "production"  # Set environment variable for production
+      imagePullSecrets:
+        - name: acr-auth  
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextjsapp-service
+spec:
+  selector:
+    app: nextjsapp
+  ports:
+    - protocol: TCP
+      port: 80  
+      targetPort: 3000  
+  type: LoadBalancer  # Use LoadBalancer for public access, or change to ClusterIP for internal access
