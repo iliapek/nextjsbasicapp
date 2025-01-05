@@ -96,6 +96,6 @@ jobs:
         kubectl set image deployment/nextjsapp nextjsapp=${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
     # Step 11: Clean up old images from ACR 
-    - name: Clean up old images from ACR
-      run: |
-        az acr repository delete --name ${{ secrets.ACR_NAME }} --image nextjsapp:old --yes
+  #  - name: Clean up old images from ACR
+   #   run: |
+    #    az acr repository delete --name ${{ secrets.ACR_NAME }} --image nextjsapp:old --yes
