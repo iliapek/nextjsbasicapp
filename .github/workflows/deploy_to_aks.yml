@@ -1,0 +1,87 @@
+name: Deploy Next.js App to AKS (DevSecOps Pipeline)
+
+on:
+  push:
+    branches:
+      - main  
+  pull_request:
+    branches:
+      - main  
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    
+    # Step 1: Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Node.js environment
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'  
+
+    # Step 3: Install dependencies and run security checks on dependencies
+    - name: Install dependencies and run npm audit
+      run: |
+        npm install
+        npm audit --audit-level=high  # Only allow high severity issues
+
+    # Step 4: Install Docker for image building and scanning
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Set up Docker
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: linux/amd64,linux/arm64
+
+    # Step 5: Run Dockerfile security checks (Dockerfile linting and vulnerability scan)
+    - name: Run Dockerfile linting and security scan
+      run: |
+        docker run --rm -i hadolint/hadolint < Dockerfile  # Lint Dockerfile
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/scope:latest -f Dockerfile  # Vulnerability scan (Anchore CLI)
+
+    # Step 6: Build Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }} .
+
+    # Step 7: Docker image vulnerability scan using Snyk
+    - name: Scan Docker image for vulnerabilities
+      uses: snyk/snyk-docker-plugin-action@v1
+      with:
+        docker-image: ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+
+    # Step 8: Log in to Azure and Azure Container Registry (ACR)
+    - name: Log in to Azure
+      run: |
+        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+    - name: Log in to ACR
+      run: |
+        az acr login --name ${{ secrets.ACR_NAME }}
+
+    # Step 9: Push Docker image to ACR
+    - name: Push Docker image to ACR
+      run: |
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+
+    # Step 10: Deploy to AKS cluster
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials --resource-group ${{ secrets.RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+    - name: Deploy to AKS with kubectl
+      run: |
+        kubectl apply -f k8s-deployment.yaml  # Ensure you have a valid Kubernetes deployment file
+        kubectl set image deployment/nextjsapp nextjsapp=${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+
+    # Step 11: Clean up
+    - name: Clean up old images from ACR (optional)
+      run: |
+        az acr repository delete --name ${{ secrets.ACR_NAME }} --image nextjsapp:old --yes  # Optional: Clean up old images to save storage
