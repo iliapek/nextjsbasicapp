@@ -59,43 +59,43 @@ jobs:
         docker --version
       #  docker scan --version
 
-    # Step 5: Build Docker image
-    - name: Build Docker image
-      run: |
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }} .
-
-   # Step 6: Scan Docker image using Docker Scan 
- #   - name: Scan Docker image with Docker Scan
-  #    run: |
-   #     docker scan ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
-
-
-    # Step 7: Log in to Azure and Azure Container Registry (ACR)
+   # Step 5: Log in to Azure
     - name: Log in to Azure
       run: |
         az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
         az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
+
+    # Step 6: Log in to Azure Container Registry (ACR)
     - name: Log in to ACR
       run: |
         az acr login --name ${{ secrets.ACR_NAME }}
 
-    # Step 8: Push Docker image to ACR
+    # Step 7: Build Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }} .
+
+    # Step 8: Scan Docker image using Docker Scan
+ #   - name: Scan Docker image with Docker Scan
+  #    run: |
+   #     docker scan ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+
+    # Step 9: Push Docker image to ACR
     - name: Push Docker image to ACR
       run: |
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
-    # Step 9: Deploy to AKS cluster
+    # Step 10: Deploy to AKS cluster
     - name: Get AKS credentials
       run: |
         az aks get-credentials --resource-group ${{ secrets.RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
 
     - name: Deploy to AKS with kubectl
       run: |
-        kubectl apply -f k8s-deployment.yaml  # Ensure you have a valid Kubernetes deployment file
+        kubectl apply -f k8s-deployment.yaml
         kubectl set image deployment/nextjsapp nextjsapp=${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
-    # Step 10: Clean up
-    - name: Clean up old images from ACR 
+    # Step 11: Clean up old images from ACR 
+    - name: Clean up old images from ACR
       run: |
-        az acr repository delete --name ${{ secrets.ACR_NAME }} --image nextjsapp:old --yes  # Optional: Clean up old images to save storage
+        az acr repository delete --name ${{ secrets.ACR_NAME }} --image nextjsapp:old --yes
