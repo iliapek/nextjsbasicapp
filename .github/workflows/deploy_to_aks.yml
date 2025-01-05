@@ -22,7 +22,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '16'  
+        node-version: '18.x'  
 
     # Step 3: Install dependencies and run security checks on dependencies
     - name: Install dependencies and run npm audit
