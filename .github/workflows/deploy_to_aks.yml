@@ -29,6 +29,7 @@ jobs:
       run: |
         npm install
         npm audit --audit-level=high  # Only allow high severity issues
+        npm audit fix --force
 
     # Step 4: Install Docker for image building and scanning
     - name: Set up Docker Buildx
