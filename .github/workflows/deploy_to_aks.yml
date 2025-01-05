@@ -50,11 +50,11 @@ jobs:
       run: |
         docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }} .
 
-    # Step 7: Docker image vulnerability scan using Snyk
-    - name: Scan Docker image for vulnerabilities
-      uses: snyk/snyk-docker-plugin-action@v1
-      with:
-        docker-image: ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+   # Step 7: Scan Docker image using Docker Scan 
+    - name: Scan Docker image with Docker Scan
+      run: |
+        docker scan ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
+
 
     # Step 8: Log in to Azure and Azure Container Registry (ACR)
     - name: Log in to Azure
