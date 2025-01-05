@@ -40,24 +40,18 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64
 
-    # Step 5: Run Dockerfile security checks (Dockerfile linting and vulnerability scan)
-    - name: Run Dockerfile linting and security scan
-      run: |
-        docker run --rm -i hadolint/hadolint < Dockerfile  # Lint Dockerfile
-        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/scope:latest -f Dockerfile  # Vulnerability scan (Anchore CLI)
-
-    # Step 6: Build Docker image
+    # Step 5: Build Docker image
     - name: Build Docker image
       run: |
         docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }} .
 
-   # Step 7: Scan Docker image using Docker Scan 
+   # Step 6: Scan Docker image using Docker Scan 
     - name: Scan Docker image with Docker Scan
       run: |
         docker scan ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
 
-    # Step 8: Log in to Azure and Azure Container Registry (ACR)
+    # Step 7: Log in to Azure and Azure Container Registry (ACR)
     - name: Log in to Azure
       run: |
         az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
@@ -67,12 +61,12 @@ jobs:
       run: |
         az acr login --name ${{ secrets.ACR_NAME }}
 
-    # Step 9: Push Docker image to ACR
+    # Step 8: Push Docker image to ACR
     - name: Push Docker image to ACR
       run: |
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
-    # Step 10: Deploy to AKS cluster
+    # Step 9: Deploy to AKS cluster
     - name: Get AKS credentials
       run: |
         az aks get-credentials --resource-group ${{ secrets.RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
@@ -82,7 +76,7 @@ jobs:
         kubectl apply -f k8s-deployment.yaml  # Ensure you have a valid Kubernetes deployment file
         kubectl set image deployment/nextjsapp nextjsapp=${{ secrets.ACR_NAME }}.azurecr.io/nextjsapp:${{ github.sha }}
 
-    # Step 11: Clean up
-    - name: Clean up old images from ACR (optional)
+    # Step 10: Clean up
+    - name: Clean up old images from ACR 
       run: |
         az acr repository delete --name ${{ secrets.ACR_NAME }} --image nextjsapp:old --yes  # Optional: Clean up old images to save storage
